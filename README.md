@@ -43,8 +43,38 @@ Below we have the framework depicted in UML:
 Data Cleaning has 3 steps: the date from which we consider files, the individual frequency of each element - files that appear few times are likely to be irrelevant and not provide information - and, finally, the frequency of the pair itself - rare pairs may have occured by chance. 
 To remove the noise from the data we want that the average number of occurences per file is larger - we want more density of relevant files and tests. Here's how this density varies with out parameters:
 
-
 [![Surface Plot](images/3d_data_clean.png)](3D)
+
+## Parameter Tuning 
+
+There are many parameters to be configured in this framework: 
+
+* **Embedding-Size:** Length of the vector that represents files and tests.
+* **Negative-Ratio:** Proportionality of positive examples - the ones that occur in the data - and negative examples - the ones that do not occur in the data, for example, test that did not transition when that file was modified.
+* **Task:** Choose task for Supervised Learning Problem, *Classification* or *Regression*.
+* **Optimizer:** Optimizer for backpropagation algorithm. Default: 'Adam'
+* **Batch-Size:** Each batch is composed by one or more revisions that have unequal length of pairs.
+* **Epochs:** Number of passes through the whole dataset.
+
+### Epochs: 10 - Batch-Size: 10
+[![PT10](images/apfd_10_epochs_10_batch_size.png)](APFD_10)
+
+### Epochs: 10 - Batch-Size: 5
+[![PT5](images/apfd_10_epochs_5_batch_size.png)](APFD_5)
+
+### Epochs: 10 - Batch-Size: 1
+[![PT1](images/apfd_10_epochs_1_batch_size.png)](APFD_1)
+
+### Best Combination: 
+
+**Score**: APFD = 0.67 ± 0.15
+
+* **Embedding-Size:** 200
+* **Negative-Ratio:** 1
+* **Task:** Regression.
+* **Optimizer:** 'Adam'
+* **Batch-Size:** 1
+* **Epochs:** 10
 
 ## Evaluation - APFD 
 
@@ -52,7 +82,21 @@ The APFD how well the Prioritization was. If its value is 1, then all relevant t
 
 The evaluation is done by taking 100 new revisions, looking at what files were modified and return a test ordering that hopefully maximizes the APFD.
 
-[![Surface Plot](images/apfd_threshpairs1_ind_5_.png)](APFD)
+Combining Data Cleaning and Parameter Tuning parameters:
+
+* **Start-Date**: 1yr ago
+* **Individual Threshold**: 5 occurences
+* **Pair threshold**: 1 occurence
+* **Embedding-Size:** 200
+* **Negative-Ratio:** 1
+* **Task:** Regression.
+* **Optimizer:** 'Adam'
+* **Batch-Size:** 1
+* **Epochs:** 10
+
+[![Surface Plot](images/apfd_threshpairs1_ind_5.png)](APFD)
+
+As we can see, prioritization results reach to APFD = 0.74 ± 0.17, which is much better thatn 0.5.
 
 ## Representing Embeddings 
 
