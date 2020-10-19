@@ -7,12 +7,13 @@ NNE-TCP - Neural Network Embeddings for Test Case Prioritization - is a Machine 
 * **Lightweight** 
 * **Modular** to fit different system configurations.
 
-
-## Class Scheme
-
-### Summary: 
-OOP-Scheme that takes raw CI Data, transforms it and cleans it. By reimplementing the Keras DataGenerator class, we can generate new batches of data on-the-fly, saving up memory.
+## Summary: 
+OOP-Scheme takes raw CI Data, transforms it and cleans it. By reimplementing the Keras DataGenerator class, we can generate new batches of data on-the-fly, saving up memory.
   Then the data is used to feed a Neural Network Embedding Machine Learning Model that will be used to make predictions on unseen data, i.e. make more meaningful test orderings to catch regressions quicker.  
+
+## Class Scheme: 
+
+Below we have the framework depicted in UML:
 
 [![UML](images/ClassDiagramUML.png)](http://typo3.demo.aimeos.org/)
    
