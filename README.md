@@ -38,3 +38,30 @@ Below we have the framework depicted in UML:
 
 [![Keras Model](images/model.png)](model)
 
+## Data Cleaning
+
+Data Cleaning has 3 steps: the date from which we consider files, the individual frequency of each element - files that appear few times are likely to be irrelevant and not provide information - and, finally, the frequency of the pair itself - rare pairs may have occured by chance. 
+To remove the noise from the data we want that the average number of occurences per file is larger - we want more density of relevant files and tests. Here's how this density varies with out parameters:
+
+
+[![Surface Plot](images/3d_data_clean.png)](3D)
+
+## Evaluation - APFD 
+
+The APFD how well the Prioritization was. If its value is 1, then all relevant test were applied at the very beginning, otherwise if its value is 0, then tests were applied at the very end. For random test orderings, the APFD will average out to 0.5 and that's what we want to surpass.
+
+The evaluation is done by taking 100 new revisions, looking at what files were modified and return a test ordering that hopefully maximizes the APFD.
+
+[![Surface Plot](images/apfd_threshpairs1_ind_5_.png)](APFD)
+
+## Representing Embeddings 
+
+Not only we have a Supervised Learning task that predicts which tests are more likely to transition when certain files are modified, but because Embeddings are vectors, we can use techniques like [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis), [T-SNE](https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html) or [UMAP](https://umap-learn.readthedocs.io/en/latest/#) to represent them in 2 dimensional space, having a glimpse of what similar entities are closer together. 
+
+### T-SNE
+
+[![Surface Plot](images/best_emb_TSNE.png)](APFD)
+
+### UMAP 
+
+[![Surface Plot](images/best_emb_UMAP.png)](APFD)
