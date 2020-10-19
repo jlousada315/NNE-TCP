@@ -63,7 +63,7 @@ There are many parameters to be configured in this framework:
 [![PT5](images/apfd_10_epochs_5_batch_size.png)](APFD_5)
 
 ### Epochs: 10 - Batch-Size: 1
-[![PT1](images/apfd_10_epochs_1_batch_size.png)](APFD_1)
+[![PT1](images/apfd_10_epochs_batch_size_1.png)](APFD_1)
 
 ### Best Combination: 
 
