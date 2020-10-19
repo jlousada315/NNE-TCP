@@ -35,8 +35,10 @@ Below we have the framework depicted in UML:
 * **Keras Model:** Neural Network Embeddings depicted below.
 * **Evaluation:** Once the model is trained. When new revisions arrive, it is able to predict which tests will more likely be linked to the modified files and create a more meaningful test ordering to detect faults earlier. The evaluation is done by the APFD (Average Percentage of Faults Detections) metric.
 
+<p align="center">
+  <img src="images/model.png" />
+</p>
 
-[![Keras Model](images/model.png)](model)
 
 ## Data Cleaning
 
