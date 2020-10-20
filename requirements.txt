@@ -1,0 +1,10 @@
+umap_learn==0.4.6
+Keras==2.4.3
+numpy==1.18.5
+seaborn==0.11.0
+altair==4.1.0
+tensorflow==2.3.0
+pandas==1.1.1
+matplotlib==3.3.1
+scikit_learn==0.23.2
+umap==0.1.1
