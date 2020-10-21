@@ -1,8 +1,6 @@
-from collections import defaultdict
-
 from sklearn.manifold import TSNE
 import umap
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold, KFold
 
 from Data import DataCI
 from DataGenerator import DataGenerator
@@ -37,9 +35,9 @@ class NNEmbeddings(Model, Metrics, Visualizer):
     of loading a previously trained model, or to train from scratch.
     """
 
-    def __init__(self, D: DataCI, model_file: str = 'model.h5', embedding_size: int = 50, optimizer: str = 'Adam',
-                 negative_ratio=1, nb_epochs: int = 10, batch_size: int = 10, load: bool = False,
-                 save: bool = False, classification: bool = True):
+    def __init__(self, D: DataCI, embedding_size: int = 200, optimizer: str = 'Adam',
+                 negative_ratio=1, nb_epochs: int = 10, batch_size: int = 1, classification: bool = False,
+                 kfolds: int = 10, model_file: str = 'model.h5', load: bool = False, save: bool = False):
         """
         NNEmbeddings Class initialization.
         :param D:
@@ -54,21 +52,32 @@ class NNEmbeddings(Model, Metrics, Visualizer):
         Visualizer.__init__(self)
         self.Data = D
 
+        # Parameter Grid
+        self.param_grid = {'embedding_size': embedding_size,
+                           'negative_ratio': negative_ratio,
+                           'batch_size': batch_size,
+                           'nb_epochs': nb_epochs,
+                           'classification': classification,
+                           'optimizer': optimizer
+                           }
+
         self.model_file = model_file
         self.nr_revision = len(self.Data.pairs)
 
         if load:
             self.model = keras.models.load_model(self.model_file)
         else:
-            self.model = self.build_model(embedding_size=embedding_size, optimizer=optimizer,
-                                          classification=classification)
-            self.train(nb_epochs=nb_epochs, batch_size=batch_size, negative_ratio=negative_ratio, save_model=save)
+            self.model = self.build_model()
+            print(self.crossValidation(k_folds=kfolds))
+            if save:
+                self.model.save(self.model_file)
 
-        # print(self.crossValidation(nb_epochs=epochs, k_folds=kfolds, save_model=save))
+            # self.train(save_model=save)
+
         # y_true, y_pred = self.test()
         # self.evaluate_classification(y_true, y_pred)
 
-    def build_model(self, embedding_size=50, optimizer='Adam', classification=True):
+    def build_model(self):
         """
         Build model architecture/framework
         :return: model
@@ -84,12 +93,12 @@ class NNEmbeddings(Model, Metrics, Visualizer):
         # Embedding the book (shape will be (None, 1, 50))
         file_embedding = Embedding(name='file_embedding',
                                    input_dim=len(self.Data.file_index),
-                                   output_dim=embedding_size)(file)
+                                   output_dim=self.param_grid['embedding_size'])(file)
 
         # Embedding the link (shape will be (None, 1, 50))
         test_embedding = Embedding(name='test_embedding',
                                    input_dim=len(self.Data.test_index),
-                                   output_dim=embedding_size)(test)
+                                   output_dim=self.param_grid['embedding_size'])(test)
 
         # Merge the layers with a dot product along the second axis (shape will be (None, 1, 1))
         merged = Dot(name='dot_product', normalize=True, axes=2)([file_embedding, test_embedding])
@@ -98,20 +107,20 @@ class NNEmbeddings(Model, Metrics, Visualizer):
         merged = Reshape(target_shape=[1])(merged)
 
         # If classification, add extra layer and loss function is binary cross entropy
-        if classification:
+        if self.param_grid['classification']:
             merged = Dense(1, activation='sigmoid')(merged)
             model = Model(inputs=[file, test], outputs=merged)
-            model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+            model.compile(optimizer=self.param_grid['optimizer'], loss='binary_crossentropy', metrics=['accuracy'])
 
         # Otherwise loss function is mean squared error
         else:
             model = Model(inputs=[file, test], outputs=merged)
-            model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+            model.compile(optimizer=self.param_grid['optimizer'], loss='mse', metrics=['mae'])
 
         model.summary()
         return model
 
-    def train(self, nb_epochs=10, batch_size: int = 10, negative_ratio=1, save_model=False, plot=False):
+    def train(self, save_model=False, plot=False):
         """
         Train model.
         :param batch_size:
@@ -128,17 +137,68 @@ class NNEmbeddings(Model, Metrics, Visualizer):
         # Generate training set
         training_set = self.Data.pairs
 
-        train_gen = DataGenerator(pairs=training_set, batch_size=batch_size, nr_files=len(self.Data.all_files),
-                                  nr_tests=len(self.Data.all_tests), negative_ratio=negative_ratio)
+        train_gen = DataGenerator(pairs=training_set, batch_size=self.param_grid['batch_size'],
+                                  nr_files=len(self.Data.all_files), nr_tests=len(self.Data.all_tests),
+                                  negative_ratio=self.param_grid['negative_ratio'])
 
         # Train
         self.model.fit(train_gen,
-                       epochs=nb_epochs,
+                       epochs=self.param_grid['nb_epochs'],
                        verbose=2)
         if plot:
             self.plot_acc_loss(self.model)
         if save_model:
             self.model.save(self.model_file)
+
+    def crossValidation(self, k_folds=10):
+        cv_accuracy_train = []
+        cv_accuracy_val = []
+        cv_loss_train = []
+        cv_loss_val = []
+
+        from sklearn.model_selection import train_test_split
+
+        s = np.array(list(self.Data.pairs.keys()))
+
+        kfold = KFold(n_splits=k_folds, shuffle=True)
+
+        idx = 0
+        for train_idx, val_idx in kfold.split(s):
+            print("=========================================")
+            print("====== K Fold Validation step => %d/%d =======" % (idx, k_folds))
+            print("=========================================")
+            pairs_train = {s[key]: self.Data.pairs[s[key]] for key in train_idx}
+            pairs_val = {s[key]: self.Data.pairs[s[key]] for key in val_idx}
+
+            train_gen = DataGenerator(pairs=pairs_train, batch_size=self.param_grid['batch_size'],
+                                      nr_files=len(self.Data.all_files), nr_tests=len(self.Data.all_tests),
+                                      negative_ratio=self.param_grid['negative_ratio'])
+
+            val_gen = DataGenerator(pairs=pairs_val, batch_size=self.param_grid['batch_size'],
+                                    nr_files=len(self.Data.all_files), nr_tests=len(self.Data.all_tests),
+                                    negative_ratio=self.param_grid['negative_ratio'])
+
+            # Train
+            h = self.model.fit(train_gen,
+                               validation_data=val_gen,
+                               epochs=self.param_grid['nb_epochs'],
+                               verbose=2)
+
+            cv_accuracy_train.append(np.array(h.history['mae'])[-1])
+            cv_accuracy_val.append(np.array(h.history['val_mae'])[-1])
+            cv_loss_train.append(np.array(h.history['loss'])[-1])
+            cv_loss_val.append(np.array(h.history['val_loss'])[-1])
+            idx += 1
+
+        df = pd.DataFrame({'acc_train': cv_accuracy_train,
+                           'loss_train': cv_loss_train,
+                           'acc_val': cv_accuracy_val,
+                           'loss_val': cv_loss_val
+                           },
+                          columns=['acc_train', 'loss_train', 'acc_val', 'loss_val'])
+
+        df.to_pickle('cv_scores.pkl')
+        return df
 
     def predict(self, pickle_file: str = None):
         """
@@ -147,7 +207,6 @@ class NNEmbeddings(Model, Metrics, Visualizer):
         :return:
         """
         apfd = []
-        #fdr = []
         data = self.Data.df_unseen
         data = data.explode('name')
         data = data.explode('mod_files')
@@ -158,9 +217,7 @@ class NNEmbeddings(Model, Metrics, Visualizer):
             preds_per_files = []
             tests = group['name'].to_list()
             labels = []
-            duration = []
             for t in self.Data.all_tests:
-                duration.append(self.Data.test_duration[t])
                 if t in tests:
                     labels.append(1)
                 else:
@@ -176,10 +233,8 @@ class NNEmbeddings(Model, Metrics, Visualizer):
                     while True:
                         for idx, (file_id, test_id) in enumerate(pairs):
                             batch[idx, :] = (file_id, test_id)
-
                         # Increment idx by 1
                         idx += 1
-
                         yield {'file': batch[:, 0], 'test': batch[:, 1]}
 
                 if unseen_pairs:
@@ -187,15 +242,9 @@ class NNEmbeddings(Model, Metrics, Visualizer):
                     preds_per_files.append(self.model.predict(x))
 
             pred = [max(idx) for idx in zip(*preds_per_files)]  # return maximum score of test
-
-            prioritization = [x for _, x in sorted(zip(pred, labels), reverse=True)] # Reorder test case list
-            #duration = [x for _, x in sorted(zip(pred, duration), reverse=True)]
-
-            apfd.append(self.apfd(prioritization)) # calculate apfd
-            #fdr.append(self.fdr(prioritization, duration))
-
-            print(f'APFD -> {np.round(self.apfd(prioritization), 2)}')
-            print(f'FDR -> {np.round(self.fdr(prioritization, duration), 2)}')
+            prioritization = [x for _, x in sorted(zip(pred, labels), reverse=True)]  # Reorder test case list
+            apfd.append(self.apfd(prioritization))  # calculate apfd
+            # print(f'APFD -> {np.round(self.apfd(prioritization), 2)}')
 
         df = pd.DataFrame({'apfd': apfd},
                           columns=['apfd'])
@@ -205,12 +254,13 @@ class NNEmbeddings(Model, Metrics, Visualizer):
 
         return df
 
-    def test(self, negative_ratio=1.0):
+    def test(self):
         # Generate training set
         test_set = self.Data.unseen_pairs
 
-        test_gen = DataGenerator(pairs=test_set, batch_size=10, nr_files=len(self.Data.all_files),
-                                 nr_tests=len(self.Data.all_tests), negative_ratio=negative_ratio)
+        test_gen = DataGenerator(pairs=test_set, batch_size=self.param_grid['batch_size'],
+                                 nr_files=len(self.Data.all_files), nr_tests=len(self.Data.all_tests),
+                                 negative_ratio=self.param_grid['negative_ratio'])
 
         X, y = next(test_gen.data_generation(test_set))
         pred = self.model.predict(X)
@@ -245,7 +295,7 @@ class NNEmbeddings(Model, Metrics, Visualizer):
         weights = weights / np.linalg.norm(weights, axis=1).reshape((-1, 1))
         return weights
 
-    def get_components(self, method='TSNE'):
+    def get_components(self, components=2, method='TSNE'):
         """
         Extract 2 components from multi-dimensional manifold
         :param method:
@@ -254,8 +304,8 @@ class NNEmbeddings(Model, Metrics, Visualizer):
         file_weight_class = self.extract_weights('file_embedding')
         test_weight_class = self.extract_weights('test_embedding')
 
-        file_r = reduce_dim(file_weight_class, components=2, method=method)
-        test_r = reduce_dim(test_weight_class, components=2, method=method)
+        file_r = reduce_dim(file_weight_class, components=components, method=method)
+        test_r = reduce_dim(test_weight_class, components=components, method=method)
         return file_r, test_r
 
     def get_file_labels(self):
@@ -264,9 +314,8 @@ class NNEmbeddings(Model, Metrics, Visualizer):
         :return: (files, file labels)
         """
         pjs = []
-        for row in self.Data.df_link.iterrows():
-            for item in row[1]['mod_files']:
-                pjs.append((item, item.split('/')[0]))
+        for item in self.Data.all_files:
+            pjs.append((item, item.split('/')[0]))
         return list(set(pjs))
 
     def get_test_labels(self):
@@ -275,13 +324,13 @@ class NNEmbeddings(Model, Metrics, Visualizer):
         :return: (tests, tests labels)
         """
         tst = []
-        for row in self.Data.df_link.iterrows():
-            for item in row[1]['name']:
-                label = item.split('_')
-                if len(label) > 2:
-                    tst.append((item, label[2]))
-                else:
-                    tst.append((item, 'Other'))
+
+        for item in self.Data.all_tests:
+            label = item.split('_')
+            if len(label) > 2:
+                tst.append((item, label[2]))
+            else:
+                tst.append((item, 'Other'))
         return list(set(tst))
 
     def plot_embeddings(self, method='TSNE'):
@@ -303,7 +352,10 @@ class NNEmbeddings(Model, Metrics, Visualizer):
         """
         if layer == 'tests':
             tst_labels = self.get_test_labels()
+            print(len(tst_labels))
             _, test_r = self.get_components(method=method)
+            print(len(test_r))
+
             self.plot_embed_tests(tst_label=tst_labels, test_r=test_r, method=method)
         elif layer == 'files':
             file_labels = self.get_file_labels()
@@ -321,49 +373,3 @@ class NNEmbeddings(Model, Metrics, Visualizer):
             to_file="model.png",
             show_shapes=show_shapes
         )
-
-    def crossValidation(self, k_folds=10, nb_epochs=10, n_positive=500, negative_ratio=3.0, save_model=False):
-        # Training with K-fold cross validation
-        kf = KFold(n_splits=k_folds, random_state=None, shuffle=True)
-        kf.get_n_splits(self.Data.pairs)
-        X = np.array(self.Data.pairs)
-
-        cv_accuracy_train = []
-        cv_accuracy_val = []
-        cv_loss_train = []
-        cv_loss_val = []
-
-        i = 1
-        for train_index, test_index in kf.split(X):
-            training_set = X[train_index]
-            validation_set = X[test_index]
-
-            print(training_set)
-            exit()
-
-            print("=========================================")
-            print("====== K Fold Validation step => %d/%d =======" % (i, k_folds))
-            print("=========================================")
-
-            train_gen = DataGenerator(pairs=training_set, negative_ratio=negative_ratio)
-
-            val_gen = DataGenerator(pairs=validation_set, negative_ratio=negative_ratio)
-
-            # Train
-            h = self.model.fit(train_gen,
-                               validation_data=val_gen,
-                               epochs=nb_epochs,
-                               verbose=2)
-
-            cv_accuracy_train.append(np.array(h.history['accuracy'])[-1])
-            cv_accuracy_val.append(np.array(h.history['val_accuracy'])[-1])
-            cv_loss_train.append(np.array(h.history['loss'])[-1])
-            cv_loss_val.append(np.array(h.history['val_loss'])[-1])
-
-            i += 1
-
-        if save_model:
-            self.model.save(self.model_file)
-
-        return np.mean(cv_accuracy_train), np.mean(cv_loss_train), \
-               np.mean(cv_accuracy_val), np.mean(cv_loss_val)

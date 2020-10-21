@@ -14,11 +14,11 @@ class Model:
         pass
 
     @abstractmethod
-    def train(self, nb_epoch, batch_size, training_set_size, validation_set_size):
+    def train(self):
         pass
 
     @abstractmethod
-    def test(self, test_set_size, ):
+    def test(self):
         pass
 
     @abstractmethod

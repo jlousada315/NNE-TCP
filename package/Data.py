@@ -47,7 +47,7 @@ class DataCI(Data, Visualizer):
         self.test_history = test_history
         self.mod_files = mod_files
         self.predict_len = predict_len
-        self.test_duration = pd.Series(self.test_details.duration.values, index=self.test_details.name).to_dict()
+        # self.test_duration = pd.Series(self.test_details.duration.values, index=self.test_details.name).to_dict()
 
         # Data Cleaning
         self.transform()
@@ -63,21 +63,7 @@ class DataCI(Data, Visualizer):
         self.unseen_pairs = self.create_pairs(data=self.df_unseen)
         self.clean_pairs(threshold_pairs=threshold_pairs)
 
-        # count number of distinct directories and files
-        self.all_pairs = [t for k, v in self.pairs.items() for t in v]
-        self.files = [file for file, test in self.all_pairs]
-        self.tests = [test for file, test in self.all_pairs]
-
-        self.all_tests = list(np.unique(self.tests))
-        self.all_files = list(np.unique(self.files))
-
-        # encode files and test to ints
-        self.file_index = {file: idx for idx, file in enumerate(self.all_files)}
-        self.index_file = {idx: file for file, idx in self.file_index.items()}
-
-        self.test_index = {test: idx for idx, test in enumerate(self.all_tests)}
-        self.index_test = {idx: test for test, idx in self.test_index.items()}
-        print(f'There are {len(self.all_files)} unique files and {len(self.all_tests)}')
+        self.update_pairs()
 
         P = {}
         for k, v in self.pairs.items():
@@ -292,6 +278,23 @@ class DataCI(Data, Visualizer):
 
         for k, v in self.pairs.items():
             self.pairs[k] = [t for t in v if C[t] > threshold_pairs]
+
+    def update_pairs(self):
+        # count number of distinct directories and files
+        self.all_pairs = [t for k, v in self.pairs.items() for t in v]
+        self.files = [file for file, test in self.all_pairs]
+        self.tests = [test for file, test in self.all_pairs]
+
+        self.all_tests = list(np.unique(self.tests))
+        self.all_files = list(np.unique(self.files))
+
+        # encode files and test to ints
+        self.file_index = {file: idx for idx, file in enumerate(self.all_files)}
+        self.index_file = {idx: file for file, idx in self.file_index.items()}
+
+        self.test_index = {test: idx for idx, test in enumerate(self.all_tests)}
+        self.index_test = {idx: test for test, idx in self.test_index.items()}
+        print(f'There are {len(self.all_files)} unique files and {len(self.all_tests)}')
 
     def get_data_info(self):
         """

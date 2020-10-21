@@ -63,11 +63,11 @@ class Visualizer:
         plt.axis([0, 10, 0, np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10])
         plt.show()
 
-    def plot_acc_loss(self, model):
-        l = np.array(model.history['loss'])
-        lt = np.array(model.history['val_loss'])
-        a = np.array(model.history['accuracy'])
-        at = np.array(model.history['val_accuracy'])
+    def plot_acc_loss(self, df):
+        l = np.array(df['loss_train'])
+        lt = np.array(df['loss_val'])
+        a = np.array(df['acc_train'])
+        at = np.array(df['acc_val'])
         e = range(len(l))
 
         fig, ax1 = plt.subplots()
@@ -84,7 +84,7 @@ class Visualizer:
         ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
         color = 'tab:blue'
-        ax2.set_ylabel('Accuracy', color=color, fontsize=15)  # we already handled the x-label with ax1
+        ax2.set_ylabel('Mean Absolute Error', color=color, fontsize=15)  # we already handled the x-label with ax1
         ax2.plot(e, a, color=color, lw=2)
         ax2.plot(e, at, color=color, lw=2, linestyle='--')
 

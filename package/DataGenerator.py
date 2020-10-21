@@ -10,7 +10,6 @@ class DataGenerator(keras.utils.Sequence):
     Generates data for Keras Model. Receives pairs of (files, tests) and generates random combinations of
     (file, test, label). Where the label is either 1 if the pair exists in the data or 0 otherwise. The class balance
     is given by the negative_ratio parameter, if parameter is 1, class balance is 50% each.
-    Parameter splits gives the percentage attributed to (training_set, validation_set, test_set)
     """
 
     def __init__(self, pairs, nr_files, nr_tests, negative_ratio=1.0, batch_size=10, classification=True, shuffle=True):

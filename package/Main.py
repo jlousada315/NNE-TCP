@@ -1,13 +1,12 @@
 import glob
 import os
 
-from matplotlib import cm
 from sklearn.model_selection import ParameterGrid
 
 from Data import DataCI
 from Prioritizer import NNEmbeddings
 import pandas as pd
-from matplotlib.pylab import plt, LinearLocator, FormatStrFormatter
+from matplotlib.pylab import plt
 import numpy as np
 import seaborn as sns
 
@@ -331,7 +330,7 @@ def new_model(D: DataCI, params: dict, model_file: str, save: bool = False, load
                             classification=params['classification'], save=save, model_file=model_file)
 
 
-def model(Prio: NNEmbeddings, plot_emb: bool = False, pickle_file: str=None):
+def model(Prio: NNEmbeddings, plot_emb: bool = False, pickle_file: str = None):
     """
     Make predictions and plots on unseen data.
     :param Prio:
@@ -341,7 +340,6 @@ def model(Prio: NNEmbeddings, plot_emb: bool = False, pickle_file: str=None):
     # New Predicitons
     df_metrics = Prio.predict(pickle_file=pickle_file)
     plot_single(df_metrics)
-    plot_metric(df_metrics, name='Plot_Metrics/' + Prio.model_file + '.png')
 
     if plot_emb:
         # TSNE Plots
@@ -382,22 +380,29 @@ def main():
                   'negative_ratio': 1,
                   'batch_size': 1,
                   'nb_epochs': 10,
-                  'classification': False,
-                  'optimizer': 'Adam'
+                  'classification': True,
+                  'optimizer': 'sgd'
                   }
     nr_revs = 100
-    D = DataCI(commits, test_details, test_status, mod_files, predict_len=nr_revs, threshold_pairs=1, threshold=10)
+    D = DataCI(commits, test_details, test_status, mod_files, predict_len=nr_revs, threshold_pairs=1, threshold=5)
 
     # Create New NNEmbedding instance
-    model_file = 'Models/Theshpairs5_Ind_10_emb_200_nr_1_batch_1_epochs_10_classification_False.h5'
-    NNEmbed = new_model(D=D, params=param_grid, model_file=model_file)
-    model(Prio=NNEmbed, pickle_file='metrics/Theshpairs5_Ind_10_emb_200_nr_1_batch_1_epochs_10_classification_False.h5')
+    model_file = 'Models/CVTheshpairs1_Ind_5_sgd_emb_200_nr_1_batch_1_epochs_10_classification_False.h5'
+    N = NNEmbeddings(D=D, model_file=model_file, optimizer='sgd')
+
+    df = pd.read_pickle('cv_scores.pkl')
+    N.plot_acc_loss(df)
+
+    model(Prio=N,
+         pickle_file='metrics/CVTheshpairs1_Ind_5_sgd_emb_200_nr_1_batch_1_epochs_10_classification_False.pkl',
+         plot_emb=True)
 
     # plot calculated metrics
     # df = get_df_metrics()
     # plot_metric(df, epochs=100, batch_size=1, name='apfd_emb_size_200_epochs_100_batch_size_1_regression')
 
     # parameter_tuning(D)
+
 
 if __name__ == '__main__':
     main()
