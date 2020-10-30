@@ -364,11 +364,10 @@ def main():
     D = DataCI(commits, test_details, test_status, mod_files, predict_len=nr_revs, threshold_pairs=1, threshold=5) # create training set
 
     model_file = 'Models/CVTheshpairs1_Ind_5_sgd_emb_200_nr_1_batch_1_epochs_10_classification_False.h5'
-    N = NNEmbeddings(D=D, load=True)
+    N = NNEmbeddings(D=D, load=True, model_file=model_file)
 
     # Plot Results
     model(N, plot_emb=True)
-    
 
 
     """
