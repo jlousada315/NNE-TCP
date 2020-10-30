@@ -244,7 +244,7 @@ class NNEmbeddings(Model, Metrics, Visualizer):
             pred = [max(idx) for idx in zip(*preds_per_files)]  # return maximum score of test
             prioritization = [x for _, x in sorted(zip(pred, labels), reverse=True)]  # Reorder test case list
             apfd.append(self.apfd(prioritization))  # calculate apfd
-            # print(f'APFD -> {np.round(self.apfd(prioritization), 2)}')
+            print(f'APFD -> {np.round(self.apfd(prioritization), 2)}')
 
         df = pd.DataFrame({'apfd': apfd},
                           columns=['apfd'])
