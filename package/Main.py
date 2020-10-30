@@ -171,7 +171,10 @@ def plot_single(df_metrics):
                  hist_kws={'edgecolor': 'black'},
                  kde_kws={'linewidth': 4, 'clip': (0.0, 1.0)}, label=label)
 
-    plt.legend(frameon=True)
+    plt.legend(frameon=True, loc='upper left', prop={'size': 20})
+    plt.xlabel('APFD')
+
+    #plt.title('APFD Distribution - 100 revisions ')
     plt.show()
 
 
@@ -243,7 +246,6 @@ def load_stats_dataframe(files, aggregated_results=None):
         return pd.read_pickle(aggregated_results)
 
     df = pd.DataFrame()
-    print(files)
     for f in files:
         tmp_dict = pd.read_pickle(f)
         tmp_dict['emb_size'] = f.split('_')[2]
@@ -251,8 +253,6 @@ def load_stats_dataframe(files, aggregated_results=None):
         tmp_dict['batch_size'] = f.split('_')[6]
         tmp_dict['epochs'] = f.split('_')[8]
         tmp_dict['classification'] = f.split('_')[-1].split('.')[0]
-
-        print(tmp_dict)
 
         tmp_df = pd.DataFrame.from_dict(tmp_dict)
         df = pd.concat([df, tmp_df])
@@ -384,24 +384,27 @@ def main():
                   'optimizer': 'sgd'
                   }
     nr_revs = 100
-    D = DataCI(commits, test_details, test_status, mod_files, predict_len=nr_revs, threshold_pairs=1, threshold=5)
+    #D = DataCI(commits, test_details, test_status, mod_files, predict_len=nr_revs, threshold_pairs=1, threshold=5)
 
     # Create New NNEmbedding instance
-    model_file = 'Models/CVTheshpairs1_Ind_5_sgd_emb_200_nr_1_batch_1_epochs_10_classification_False.h5'
-    N = NNEmbeddings(D=D, model_file=model_file, optimizer='sgd')
+    #model_file = 'Models/CVTheshpairs1_Ind_5_sgd_emb_200_nr_1_batch_1_epochs_10_classification_False.h5'
+    #N = NNEmbeddings(D=D, model_file=model_file, optimizer='sgd')
 
-    df = pd.read_pickle('cv_scores.pkl')
-    N.plot_acc_loss(df)
+    #df = pd.read_pickle('cv_scores.pkl')
+    #N.plot_acc_loss(df)
 
-    model(Prio=N,
-         pickle_file='metrics/CVTheshpairs1_Ind_5_sgd_emb_200_nr_1_batch_1_epochs_10_classification_False.pkl',
-         plot_emb=True)
+    #model(Prio=N,
+    #     pickle_file='metrics/CVTheshpairs1_Ind_5_sgd_emb_200_nr_1_batch_1_epochs_10_classification_False.pkl',
+    #     plot_emb=True)
 
     # plot calculated metrics
     # df = get_df_metrics()
     # plot_metric(df, epochs=100, batch_size=1, name='apfd_emb_size_200_epochs_100_batch_size_1_regression')
 
     # parameter_tuning(D)
+
+    plot_single(pd.read_pickle('metrics/_emb_100_nr_2_batch_5_epochs_10_classification_True.pkl'))
+
 
 
 if __name__ == '__main__':
