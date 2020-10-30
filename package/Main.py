@@ -359,6 +359,21 @@ def main():
     test_status = pd.read_csv('../pub_data/test_histo_pub.csv', sep='\t')
     mod_files = pd.read_csv("../pub_data/test_commits_mod_files_pub.csv", sep='\t')
 
+    # Simple start
+    nr_revs = 100 # nr of revs to test algorithm
+    D = DataCI(commits, test_details, test_status, mod_files, predict_len=nr_revs, threshold_pairs=1, threshold=5) # create training set
+
+    model_file = 'Models/CVTheshpairs1_Ind_5_sgd_emb_200_nr_1_batch_1_epochs_10_classification_False.h5'
+    N = NNEmbeddings(D=D, load=True)
+
+    # Plot Results
+    model(N, plot_emb=True)
+    
+
+
+    """
+    tests
+   
     dates = {'3': '2019-09-11 00:00:00.000000',
              '6': '2019-06-11 00:00:00.000000',
              '12': '2019-03-11 00:00:00.000000',
@@ -383,8 +398,6 @@ def main():
                   'classification': True,
                   'optimizer': 'sgd'
                   }
-    nr_revs = 100
-    #D = DataCI(commits, test_details, test_status, mod_files, predict_len=nr_revs, threshold_pairs=1, threshold=5)
 
     # Create New NNEmbedding instance
     #model_file = 'Models/CVTheshpairs1_Ind_5_sgd_emb_200_nr_1_batch_1_epochs_10_classification_False.h5'
@@ -404,7 +417,7 @@ def main():
     # parameter_tuning(D)
 
     plot_single(pd.read_pickle('metrics/_emb_100_nr_2_batch_5_epochs_10_classification_True.pkl'))
-
+    """
 
 
 if __name__ == '__main__':
